@@ -8,7 +8,7 @@ class Settings(BaseSettings):
 
     # KIPRIS
     kipris_api_key: str
-    kipris_monthly_limit: int = 1000
+    kipris_daily_limit: int = 100
     kipris_max_iterations: int = 2
 
     # PatentsView

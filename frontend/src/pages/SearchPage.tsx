@@ -70,7 +70,7 @@ function SearchPage() {
         <p>기술 설명으로 관련 특허를 찾아보세요</p>
         {quota && (
           <div className={`quota-badge ${quota.remaining < 100 ? 'warning' : ''}`}>
-            KIPRIS {quota.remaining}/{quota.limit}건 남음
+            KIPRIS 오늘 {quota.remaining}/{quota.limit}건 남음
           </div>
         )}
       </div>

@@ -26,11 +26,11 @@ class KiprisSearcher(PatentSearcher):
 
     async def is_available(self) -> bool:
         quota = await self._read_quota()
-        return quota["used"] < settings.kipris_monthly_limit
+        return quota["used"] < settings.kipris_daily_limit
 
     async def search(self, query: SearchQuery) -> list[NormalizedPatent]:
         if not await self.is_available():
-            logger.warning("KIPRIS monthly quota exceeded")
+            logger.warning("KIPRIS daily quota exceeded")
             return []
 
         keywords = " ".join(query.keywords_kr)
@@ -105,14 +105,14 @@ class KiprisSearcher(PatentSearcher):
             return self._read_quota_sync()
 
     def _read_quota_sync(self) -> dict:
-        current_month = datetime.now().strftime("%Y-%m")
+        today = datetime.now().strftime("%Y-%m-%d")
         try:
             data = json.loads(self._quota_file.read_text(encoding="utf-8"))
-            if data.get("month") != current_month:
-                data = {"month": current_month, "used": 0}
+            if data.get("date") != today:
+                data = {"date": today, "used": 0}
                 self._quota_file.write_text(json.dumps(data), encoding="utf-8")
         except (FileNotFoundError, json.JSONDecodeError, KeyError):
-            data = {"month": current_month, "used": 0}
+            data = {"date": today, "used": 0}
             self._quota_file.parent.mkdir(parents=True, exist_ok=True)
             self._quota_file.write_text(json.dumps(data), encoding="utf-8")
         return data
@@ -125,15 +125,12 @@ class KiprisSearcher(PatentSearcher):
 
     async def get_quota(self) -> dict:
         data = await self._read_quota()
-        remaining = max(0, settings.kipris_monthly_limit - data["used"])
-        now = datetime.now()
-        if now.month == 12:
-            resets_at = f"{now.year + 1}-01-01"
-        else:
-            resets_at = f"{now.year}-{now.month + 1:02d}-01"
+        remaining = max(0, settings.kipris_daily_limit - data["used"])
+        from datetime import timedelta
+        tomorrow = (datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d")
         return {
             "used": data["used"],
-            "limit": settings.kipris_monthly_limit,
+            "limit": settings.kipris_daily_limit,
             "remaining": remaining,
-            "resets_at": resets_at,
+            "resets_at": tomorrow,
         }
