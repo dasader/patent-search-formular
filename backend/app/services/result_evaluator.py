@@ -100,8 +100,8 @@ def _parse_evaluation(text: str) -> EvaluationResult:
     try:
         data = json.loads(cleaned)
     except json.JSONDecodeError:
-        logger.error(f"Failed to parse evaluation: {cleaned[:200]}")
-        return EvaluationResult(satisfied=True, feedback="", precision_ok=True, recall_ok=True)
+        logger.warning(f"Failed to parse evaluation response, forcing re-evaluation: {cleaned[:200]}")
+        return EvaluationResult(satisfied=False, feedback="Evaluation parse failed — retry with refined query", precision_ok=False, recall_ok=False)
 
     return EvaluationResult(
         satisfied=data.get("satisfied", True),
