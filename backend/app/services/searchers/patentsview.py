@@ -22,24 +22,31 @@ class PatentsViewSearcher(PatentSearcher):
         return True
 
     async def search(self, query: SearchQuery) -> list[NormalizedPatent]:
-        keywords = " ".join(query.keywords_en)
-        if not keywords.strip():
+        # keyword_groups가 있으면 사용, 없으면 keywords_en 폴백
+        if not query.keyword_groups_en and not query.keywords_en:
             return []
 
         q_filter = self._build_query(query)
-        params = {
-            "q": q_filter,
-            "f": '["patent_id","patent_title","patent_date","patent_abstract","assignees_at_grant.assignee_organization","cpcs.cpc_group_id"]',
+        payload = {
+            "q": _json.loads(q_filter),
+            "f": [
+                "patent_id",
+                "patent_title",
+                "patent_date",
+                "patent_abstract",
+                "assignees_at_grant.assignee_organization",
+                "cpcs.cpc_group_id",
+            ],
             "per_page": 30,
         }
 
-        headers = {}
+        headers = {"Content-Type": "application/json"}
         if self._api_key:
             headers["X-Api-Key"] = self._api_key
 
         try:
             async with httpx.AsyncClient(timeout=30) as client:
-                resp = await client.get(PATENTSVIEW_BASE_URL, params=params, headers=headers)
+                resp = await client.post(PATENTSVIEW_BASE_URL, json=payload, headers=headers)
                 resp.raise_for_status()
                 data = resp.json()
         except httpx.HTTPError as e:
@@ -51,20 +58,31 @@ class PatentsViewSearcher(PatentSearcher):
     def _build_query(self, query: SearchQuery) -> str:
         conditions = []
 
-        keywords = query.keywords_en
-        if keywords:
-            text_query = " ".join(keywords)
+        if query.keyword_groups_en:
+            # 각 개념 그룹: 그룹 내 OR, 그룹 간 AND
+            for group in query.keyword_groups_en:
+                if len(group) == 1:
+                    conditions.append({"_text_any": {"patent_abstract": group[0]}})
+                elif len(group) > 1:
+                    conditions.append(
+                        {"_or": [{"_text_any": {"patent_abstract": term}} for term in group]}
+                    )
+        elif query.keywords_en:
+            # 폴백: 기존 flat 키워드
+            text_query = " ".join(query.keywords_en)
             conditions.append({"_text_any": {"patent_abstract": text_query}})
 
-        for cpc in query.cpc_codes:
-            conditions.append({"_begins": {"cpcs.cpc_group_id": cpc}})
+        # CPC 코드: OR 결합
+        cpc_conditions = [{"_begins": {"cpcs.cpc_group_id": cpc}} for cpc in query.cpc_codes]
+        if len(cpc_conditions) == 1:
+            conditions.append(cpc_conditions[0])
+        elif len(cpc_conditions) > 1:
+            conditions.append({"_or": cpc_conditions})
 
         if not conditions:
             return "{}"
-
         if len(conditions) == 1:
             return _json.dumps(conditions[0])
-
         return _json.dumps({"_and": conditions})
 
     def _parse_response(self, data: dict) -> list[NormalizedPatent]:
