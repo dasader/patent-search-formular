@@ -12,18 +12,26 @@ logger = logging.getLogger(__name__)
 _client = genai.Client(api_key=settings.gemini_api_key)
 
 GENERATE_PROMPT = """\
-You are a patent search expert. Given a technology description, generate patent search queries.
+You are a patent search expert. Given a technology description, generate structured patent search queries.
 
 Technology description:
 {description}
 
-Return a JSON object with these fields:
-- keywords_kr: list of Korean keywords for KIPRIS search (3-8 keywords)
-- keywords_en: list of English keywords for PatentsView search (3-8 keywords)
-- cpc_codes: list of relevant CPC classification codes (1-5 codes, e.g. "H04L", "G06F")
-- ipc_codes: list of relevant IPC classification codes (1-5 codes)
-- exclude_keywords: list of keywords to exclude from results (0-3)
-- core_elements: list of core technology elements (3-5) that must be covered in search results
+## Instructions
+
+1. Identify 2-5 core technology CONCEPTS from the description.
+2. For each concept, list 2-4 synonyms or alternative terms (including abbreviations).
+3. Each concept becomes a "keyword group". Within a group, terms are OR-joined; across groups, they are AND-joined.
+   Example: [["CRISPR", "Cas9", "Cas12"], ["gene editing", "genome editing"], ["off-target", "specificity"]]
+   → (CRISPR OR Cas9 OR Cas12) AND (gene editing OR genome editing) AND (off-target OR specificity)
+
+Return a JSON object:
+- keyword_groups_kr: list of groups for Korean patent search (2-5 groups, each with 2-4 Korean synonyms)
+- keyword_groups_en: list of groups for US patent search (2-5 groups, each with 2-4 English synonyms)
+- cpc_codes: relevant CPC codes (1-5, e.g. "C12N 15/10")
+- ipc_codes: relevant IPC codes (1-5)
+- exclude_keywords: keywords to exclude (0-3)
+- core_elements: core technology elements for result evaluation (3-5)
 
 Return ONLY valid JSON, no markdown.
 """
@@ -43,13 +51,19 @@ Search results summary (titles):
 Evaluation feedback:
 {feedback}
 
-Generate an improved search query. Return a JSON object with these fields:
-- keywords_kr: list of Korean keywords (3-8)
-- keywords_en: list of English keywords (3-8)
-- cpc_codes: list of CPC codes (1-5)
-- ipc_codes: list of IPC codes (1-5)
-- exclude_keywords: list of exclusion keywords (0-5)
-- core_elements: list of core technology elements (3-5)
+Improve the search query. You may:
+- Add/remove synonym terms within existing concept groups
+- Add/remove entire concept groups
+- Adjust CPC/IPC codes
+- Add exclusion keywords to reduce noise
+
+Return a JSON object:
+- keyword_groups_kr: list of groups (2-5 groups, each with 2-4 Korean synonyms)
+- keyword_groups_en: list of groups (2-5 groups, each with 2-4 English synonyms)
+- cpc_codes: CPC codes (1-5)
+- ipc_codes: IPC codes (1-5)
+- exclude_keywords: exclusion keywords (0-5)
+- core_elements: core technology elements (3-5)
 
 Return ONLY valid JSON, no markdown.
 """
@@ -97,5 +111,11 @@ def _parse_query_response(text: str) -> SearchQuery:
     except json.JSONDecodeError:
         logger.error(f"Failed to parse Gemini response: {cleaned[:200]}")
         raise ValueError("Failed to parse search query from LLM response")
+
+    # keyword_groups → flat keywords 자동 생성 (하위 호환)
+    if "keyword_groups_kr" in data and not data.get("keywords_kr"):
+        data["keywords_kr"] = [g[0] for g in data["keyword_groups_kr"] if g]
+    if "keyword_groups_en" in data and not data.get("keywords_en"):
+        data["keywords_en"] = [g[0] for g in data["keyword_groups_en"] if g]
 
     return SearchQuery(**data)
