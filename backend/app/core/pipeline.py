@@ -44,13 +44,27 @@ async def run_pipeline(
     )
 
     try:
-        (kr_query, kr_patents, kr_iters), (us_query, us_patents, us_iters) = await asyncio.wait_for(
-            asyncio.gather(kr_task, us_task, return_exceptions=False),
+        kr_result, us_result = await asyncio.wait_for(
+            asyncio.gather(kr_task, us_task, return_exceptions=True),
             timeout=settings.pipeline_timeout,
         )
     except asyncio.TimeoutError:
         emit({"type": "error", "message": f"Pipeline timeout ({settings.pipeline_timeout}s)", "step": "pipeline", "recoverable": False})
         raise TimeoutError(f"Pipeline exceeded {settings.pipeline_timeout}s timeout")
+
+    if isinstance(kr_result, Exception):
+        logger.error(f"KR search failed: {kr_result}")
+        emit({"type": "error", "message": str(kr_result), "step": "patent_search", "country": "KR", "recoverable": True})
+        kr_query, kr_patents, kr_iters = initial_query, [], 0
+    else:
+        kr_query, kr_patents, kr_iters = kr_result
+
+    if isinstance(us_result, Exception):
+        logger.error(f"US search failed: {us_result}")
+        emit({"type": "error", "message": str(us_result), "step": "patent_search", "country": "US", "recoverable": True})
+        us_query, us_patents, us_iters = initial_query, [], 0
+    else:
+        us_query, us_patents, us_iters = us_result
 
     # KIPRIS 잔여 횟수 조회
     kipris_remaining = 0
