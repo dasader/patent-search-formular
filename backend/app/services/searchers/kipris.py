@@ -70,6 +70,13 @@ class KiprisSearcher(PatentSearcher):
             logger.error("Failed to parse KIPRIS XML response")
             return results
 
+        # KIPRIS API 에러 감지 (HTTP 200이지만 실패 응답)
+        success_yn = root.findtext(".//successYN")
+        if success_yn == "N":
+            result_msg = root.findtext(".//resultMsg") or "Unknown KIPRIS error"
+            logger.error(f"KIPRIS API returned error: {result_msg}")
+            raise RuntimeError(f"KIPRIS API error: {result_msg}")
+
         for item in root.iter("item"):
             title = self._get_text(item, "inventionTitle", "")
             if not title:
