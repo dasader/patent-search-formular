@@ -244,3 +244,36 @@
   font-size: 0.75rem;
   color: var(--color-muted);
 }
+
+.keyword-groups {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.keyword-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.group-operator {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #c0392b;
+  margin: 0 0.4rem;
+}
+
+.term-operator {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: #7f8c8d;
+  margin: 0 0.15rem;
+}
+
+.group-bracket {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #95a5a6;
+}

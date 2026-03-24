@@ -126,10 +126,28 @@ function SearchPage() {
           {activeQuery && (
             <div className="query-display">
               <h3>최종 검색식</h3>
-              <div className="keyword-tags">
-                {(activeTab === 'KR' ? activeQuery.keywords_kr : activeQuery.keywords_en).map((kw, i) => (
-                  <span key={i} className="keyword-tag">{kw}</span>
-                ))}
+              <div className="keyword-groups">
+                {(activeTab === 'KR' ? activeQuery.keyword_groups_kr : activeQuery.keyword_groups_en)?.length > 0 ? (
+                  (activeTab === 'KR' ? activeQuery.keyword_groups_kr : activeQuery.keyword_groups_en).map((group, gi) => (
+                    <span key={gi} className="keyword-group">
+                      {gi > 0 && <span className="group-operator">AND</span>}
+                      <span className="group-bracket">(</span>
+                      {group.map((kw, ki) => (
+                        <span key={ki}>
+                          {ki > 0 && <span className="term-operator">OR</span>}
+                          <span className="keyword-tag">{kw}</span>
+                        </span>
+                      ))}
+                      <span className="group-bracket">)</span>
+                    </span>
+                  ))
+                ) : (
+                  (activeTab === 'KR' ? activeQuery.keywords_kr : activeQuery.keywords_en).map((kw, i) => (
+                    <span key={i} className="keyword-tag">{kw}</span>
+                  ))
+                )}
+              </div>
+              <div className="keyword-tags" style={{ marginTop: '0.5rem' }}>
                 {(activeTab === 'KR' ? activeQuery.ipc_codes : activeQuery.cpc_codes).map((code, i) => (
                   <span key={`cpc-${i}`} className="keyword-tag cpc">{code}</span>
                 ))}
