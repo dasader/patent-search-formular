@@ -33,6 +33,9 @@ Return a JSON object:
 - exclude_keywords: keywords to exclude (0-3)
 - core_elements: core technology elements for result evaluation (3-5)
 
+Example output:
+{"keyword_groups_kr": [["유전자 편집", "게놈 편집"], ["CRISPR", "크리스퍼"]], "keyword_groups_en": [["gene editing", "genome editing"], ["CRISPR", "Cas9"]], "cpc_codes": ["C12N 15/10"], "ipc_codes": ["C12N 15/00"], "exclude_keywords": [], "core_elements": ["CRISPR system", "guide RNA"]}
+
 Return ONLY valid JSON, no markdown.
 """
 
