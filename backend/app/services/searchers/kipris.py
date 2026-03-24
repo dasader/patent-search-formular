@@ -33,7 +33,12 @@ class KiprisSearcher(PatentSearcher):
             logger.warning("KIPRIS daily quota exceeded")
             return []
 
-        keywords = " ".join(query.keywords_kr)
+        # keyword_groups가 있으면 각 그룹의 첫 번째 키워드 사용
+        if query.keyword_groups_kr:
+            keywords = " ".join(g[0] for g in query.keyword_groups_kr if g)
+        else:
+            keywords = " ".join(query.keywords_kr)
+
         if not keywords.strip():
             return []
 
