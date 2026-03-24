@@ -8,6 +8,8 @@ class SearchRequest(BaseModel):
 class SearchQuery(BaseModel):
     keywords_kr: list[str] = []
     keywords_en: list[str] = []
+    keyword_groups_kr: list[list[str]] = []   # 개념 그룹 (한국어)
+    keyword_groups_en: list[list[str]] = []   # 개념 그룹 (영어, 유의어 포함)
     cpc_codes: list[str] = []
     ipc_codes: list[str] = []
     exclude_keywords: list[str] = []
