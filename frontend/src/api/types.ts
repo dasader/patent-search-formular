@@ -1,6 +1,8 @@
 export interface SearchQuery {
   keywords_kr: string[]
   keywords_en: string[]
+  keyword_groups_kr: string[][]
+  keyword_groups_en: string[][]
   cpc_codes: string[]
   ipc_codes: string[]
   exclude_keywords: string[]
