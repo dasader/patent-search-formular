@@ -25,6 +25,7 @@ class NormalizedPatent(BaseModel):
     applicant: str | None = None
     ipc_codes: list[str] = []
     url: str | None = None
+    register_status: str | None = None      # 등록상태 (등록, 공개, 소멸 등)
     relevance_score: int | None = None      # 1~5 기술 관련성 점수
     relevance_reason: str | None = None     # 관련성 판단 사유
 

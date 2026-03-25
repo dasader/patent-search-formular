@@ -102,7 +102,19 @@ async def _country_loop(
             break
 
         if not patents:
-            break
+            # 결과 0건: 마지막 반복이면 종료, 아니면 검색식 개선 시도
+            if iteration == max_iterations:
+                break
+            emit({"type": "step", "step": "query_refinement", "country": country, "iteration": iteration + 1, "reason": "no_results"})
+            feedback = "검색 결과가 0건입니다. 키워드를 더 일반적인 용어로 교체하거나 개념 그룹 수를 줄여 검색 범위를 넓혀 주세요."
+            results_summary = "(검색 결과 없음)"
+            query = await query_generator.refine_query(
+                description=description,
+                current_query=query,
+                results_summary=results_summary,
+                feedback=feedback,
+            )
+            continue
 
         # 2. 관련성 스코어링 (LLM 배치)
         emit({"type": "step", "step": "relevance_scoring", "country": country, "iteration": iteration})

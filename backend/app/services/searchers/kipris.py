@@ -13,7 +13,7 @@ from app.services.searchers.base import PatentSearcher
 
 logger = logging.getLogger(__name__)
 
-KIPRIS_BASE_URL = "http://kipo-api.kipi.or.kr/openapi/service/patUtiModInfoSearchSevice/getWordSearch"
+KIPRIS_BASE_URL = "http://kipo-api.kipi.or.kr/openapi/service/patUtiModInfoSearchSevice/getAdvancedSearch"
 
 
 class KiprisSearcher(PatentSearcher):
@@ -28,14 +28,20 @@ class KiprisSearcher(PatentSearcher):
         quota = await self._read_quota()
         return quota["used"] < settings.kipris_daily_limit
 
+    def _build_date_range(self) -> str:
+        """현재연도 제외 최근 N년 범위 (예: 20230101~20251231)"""
+        current_year = datetime.now().year
+        end_year = current_year - 1
+        start_year = current_year - settings.kipris_search_years
+        return f"{start_year}0101~{end_year}1231"
+
     async def search(self, query: SearchQuery) -> tuple[list[NormalizedPatent], int]:
         if not await self.is_available():
             logger.warning("KIPRIS daily quota exceeded")
             return [], 0
 
+        # getAllSearch: 발명의 명칭 + 초록에 키워드를 넣어 검색
         # KIPRIS 검색 연산자: AND(*), OR(+), NOT(!)
-        # 개념 그룹별 유의어를 +로 묶고, 그룹 간 *로 결합
-        # 예: (자율주행+무인자동차)*(라이다+LIDAR)*(센서+감지장치)
         if query.keyword_groups_kr:
             groups = []
             for g in query.keyword_groups_kr:
@@ -52,12 +58,15 @@ class KiprisSearcher(PatentSearcher):
         if not keywords.strip():
             return [], 0
 
-        logger.info(f"KIPRIS query: {keywords}")
+        date_range = self._build_date_range()
+        logger.info(f"KIPRIS getAllSearch query: {keywords}, date: {date_range}")
 
         params = {
-            "word": keywords,
+            "astrtCont": keywords,
+            "applicationDate": date_range,
             "patent": "true",
-            "utility": "true",
+            "utility": "false",
+            "lastvalue": "true",
             "numOfRows": 500,
             "pageNo": 1,
             "ServiceKey": settings.kipris_api_key,
@@ -107,6 +116,7 @@ class KiprisSearcher(PatentSearcher):
                 applicant=self._get_text(item, "applicantName"),
                 ipc_codes=self._parse_ipc(self._get_text(item, "ipcNumber")),
                 url=self._build_url(open_num, register_num),
+                register_status=self._get_text(item, "registerStatus"),
             ))
         return results, total_count
 

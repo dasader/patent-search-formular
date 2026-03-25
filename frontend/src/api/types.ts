@@ -18,6 +18,7 @@ export interface NormalizedPatent {
   applicant: string | null
   ipc_codes: string[]
   url: string | null
+  register_status: string | null
   relevance_score: number | null
   relevance_reason: string | null
 }

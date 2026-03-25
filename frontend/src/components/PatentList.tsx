@@ -14,6 +14,16 @@ const scoreLabel = (score: number | null) => {
   return labels[score] || ''
 }
 
+const statusBadge = (status: string | null) => {
+  if (!status) return null
+  const isRegistered = status.includes('등록')
+  return (
+    <span className={`status-badge ${isRegistered ? 'status-registered' : 'status-published'}`}>
+      {isRegistered ? '✓ 등록' : '○ 출원'}
+    </span>
+  )
+}
+
 function PatentList({ patents }: Props) {
   const [page, setPage] = useState(0)
   const totalPages = Math.ceil(patents.length / PAGE_SIZE)
@@ -38,6 +48,7 @@ function PatentList({ patents }: Props) {
                   {patent.relevance_score} {scoreLabel(patent.relevance_score)}
                 </span>
               )}
+              {patent.country === 'KR' && statusBadge(patent.register_status)}
               <h4 className="patent-title">{patent.title}</h4>
             </div>
             <span className="patent-number">{patent.application_number}</span>

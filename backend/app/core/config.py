@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     kipris_api_key: str
     kipris_daily_limit: int = 100
     kipris_max_iterations: int = 2
+    kipris_search_years: int = 3
 
     # PatentsView
     patentsview_api_key: str = ""
