@@ -21,10 +21,10 @@ class PatentsViewSearcher(PatentSearcher):
     async def is_available(self) -> bool:
         return True
 
-    async def search(self, query: SearchQuery) -> list[NormalizedPatent]:
+    async def search(self, query: SearchQuery) -> tuple[list[NormalizedPatent], int]:
         # keyword_groups가 있으면 사용, 없으면 keywords_en 폴백
         if not query.keyword_groups_en and not query.keywords_en:
-            return []
+            return [], 0
 
         q_filter = self._build_query(query)
         payload = {
@@ -53,7 +53,8 @@ class PatentsViewSearcher(PatentSearcher):
             logger.error(f"PatentsView API error: {e}")
             raise
 
-        return self._parse_response(data)
+        total_count = data.get("total_patent_count", 0)
+        return self._parse_response(data), total_count
 
     def _build_query(self, query: SearchQuery) -> str:
         conditions = []

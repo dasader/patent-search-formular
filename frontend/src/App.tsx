@@ -19,7 +19,7 @@ function App() {
       <footer className="footer">
         <div className="footer-inner">
           <span className="footer-brand">blinktask.work</span>
-          <span className="footer-version">v0.1.0</span>
+          <span className="footer-version">v{__APP_VERSION__}</span>
         </div>
       </footer>
     </>

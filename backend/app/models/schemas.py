@@ -25,6 +25,8 @@ class NormalizedPatent(BaseModel):
     applicant: str | None = None
     ipc_codes: list[str] = []
     url: str | None = None
+    relevance_score: int | None = None      # 1~5 기술 관련성 점수
+    relevance_reason: str | None = None     # 관련성 판단 사유
 
 
 class SearchResponse(BaseModel):
@@ -34,6 +36,7 @@ class SearchResponse(BaseModel):
     patents_us: list[NormalizedPatent] = []
     iterations_kr: int = 0
     iterations_us: int = 0
+    total_kr: int = 0
     kipris_remaining: int = 0
     processing_time_ms: int = 0
 

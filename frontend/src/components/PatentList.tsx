@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import type { NormalizedPatent } from '../api/types'
 import './PatentList.css'
 
@@ -5,19 +6,46 @@ interface Props {
   patents: NormalizedPatent[]
 }
 
+const PAGE_SIZE = 20
+
+const scoreLabel = (score: number | null) => {
+  if (score == null) return null
+  const labels: Record<number, string> = { 5: '핵심', 4: '높음', 3: '보통', 2: '낮음', 1: '무관' }
+  return labels[score] || ''
+}
+
 function PatentList({ patents }: Props) {
+  const [page, setPage] = useState(0)
+  const totalPages = Math.ceil(patents.length / PAGE_SIZE)
+  const start = page * PAGE_SIZE
+  const visible = patents.slice(start, start + PAGE_SIZE)
+
   return (
     <div className="patent-list">
-      {patents.map((patent, index) => (
+      <div className="pagination-info">
+        {patents.length}건 중 {start + 1}~{Math.min(start + PAGE_SIZE, patents.length)}건 표시
+      </div>
+      {visible.map((patent, index) => (
         <div
           key={`${patent.country}-${patent.application_number}`}
-          className="patent-card"
+          className={`patent-card ${patent.relevance_score ? `relevance-${patent.relevance_score}` : ''}`}
           style={{ animationDelay: `${index * 0.06}s` }}
         >
           <div className="patent-card-header">
-            <h4 className="patent-title">{patent.title}</h4>
+            <div className="patent-title-area">
+              {patent.relevance_score != null && (
+                <span className={`relevance-badge score-${patent.relevance_score}`}>
+                  {patent.relevance_score} {scoreLabel(patent.relevance_score)}
+                </span>
+              )}
+              <h4 className="patent-title">{patent.title}</h4>
+            </div>
             <span className="patent-number">{patent.application_number}</span>
           </div>
+
+          {patent.relevance_reason && (
+            <div className="relevance-reason">{patent.relevance_reason}</div>
+          )}
 
           <div className="patent-meta">
             {patent.application_date && <span>출원일: {patent.application_date}</span>}
@@ -47,6 +75,58 @@ function PatentList({ patents }: Props) {
           </div>
         </div>
       ))}
+      {totalPages > 1 && (
+        <div className="pagination">
+          <button
+            className="pagination-btn"
+            disabled={page === 0}
+            onClick={() => setPage(0)}
+          >
+            {'<<'}
+          </button>
+          <button
+            className="pagination-btn"
+            disabled={page === 0}
+            onClick={() => setPage(p => p - 1)}
+          >
+            {'<'}
+          </button>
+          {Array.from({ length: totalPages }, (_, i) => i)
+            .filter(i => Math.abs(i - page) <= 2 || i === 0 || i === totalPages - 1)
+            .reduce<number[]>((acc, i) => {
+              if (acc.length > 0 && i - acc[acc.length - 1] > 1) acc.push(-1)
+              acc.push(i)
+              return acc
+            }, [])
+            .map((i, idx) =>
+              i === -1 ? (
+                <span key={`dot-${idx}`} className="pagination-dots">...</span>
+              ) : (
+                <button
+                  key={i}
+                  className={`pagination-btn ${i === page ? 'active' : ''}`}
+                  onClick={() => setPage(i)}
+                >
+                  {i + 1}
+                </button>
+              )
+            )}
+          <button
+            className="pagination-btn"
+            disabled={page === totalPages - 1}
+            onClick={() => setPage(p => p + 1)}
+          >
+            {'>'}
+          </button>
+          <button
+            className="pagination-btn"
+            disabled={page === totalPages - 1}
+            onClick={() => setPage(totalPages - 1)}
+          >
+            {'>>'}
+          </button>
+        </div>
+      )}
     </div>
   )
 }

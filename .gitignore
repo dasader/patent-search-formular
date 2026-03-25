@@ -1,6 +1,8 @@
+.env
 backend/.env
 data/kipris_quota.json
 frontend/node_modules/
 frontend/dist/
 __pycache__/
 *.pyc
+dockerbuild.bat

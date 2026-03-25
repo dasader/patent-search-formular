@@ -13,6 +13,7 @@ function SearchPage() {
   const [activeTab, setActiveTab] = useState<'KR' | 'US'>('KR')
   const [steps, setSteps] = useState<SSEEvent[]>([])
   const [currentStep, setCurrentStep] = useState<SSEEvent | null>(null)
+  const [copied, setCopied] = useState(false)
 
   useEffect(() => {
     getKiprisQuota().then(setQuota).catch(() => {})
@@ -51,7 +52,14 @@ function SearchPage() {
     switch (event.step) {
       case 'query_generation': return '검색식 생성 중...'
       case 'patent_search': return `${country} 특허 검색 중...${iter}`
-      case 'evaluation': return `${country} 결과 평가 중...${iter}`
+      case 'relevance_scoring': return `${country} 기술 관련성 스코어링 중...${iter}`
+      case 'evaluation': return `${country} 정량 평가 중...${iter}`
+      case 'evaluation_result': {
+        const good = event.good_ratio != null ? `${Math.round(event.good_ratio * 100)}%` : '?'
+        const noise = event.noise_ratio != null ? `${Math.round(event.noise_ratio * 100)}%` : '?'
+        const pass_ = event.satisfied ? 'PASS' : 'FAIL'
+        return `${country} 평가 결과${iter}: 3점이상 ${good}, 1점 ${noise} → ${pass_}`
+      }
       case 'query_refinement': return `${country} 검색식 개선 중...${iter}`
       case 'loop_done': return `${country} 검색 완료 (${event.iterations}회 반복)`
       default: return event.step || ''
@@ -62,6 +70,34 @@ function SearchPage() {
   const activePatents = activeTab === 'KR' ? response?.patents_kr : response?.patents_us
   const krCount = response?.patents_kr.length || 0
   const usCount = response?.patents_us.length || 0
+
+  const buildFormulaText = (): string => {
+    if (!activeQuery) return ''
+    const groups = activeTab === 'KR' ? activeQuery.keyword_groups_kr : activeQuery.keyword_groups_en
+    const flatKw = activeTab === 'KR' ? activeQuery.keywords_kr : activeQuery.keywords_en
+    const codes = activeTab === 'KR' ? activeQuery.ipc_codes : activeQuery.cpc_codes
+
+    let formula = ''
+    if (groups?.length > 0) {
+      formula = groups.map(g => `(${g.join(' OR ')})`).join(' AND ')
+    } else if (flatKw.length > 0) {
+      formula = flatKw.join(' ')
+    }
+
+    if (codes.length > 0) {
+      const codeStr = codes.map(c => `${activeTab === 'KR' ? 'IPC' : 'CPC'}=${c}`).join(' OR ')
+      formula += ` AND (${codeStr})`
+    }
+    return formula
+  }
+
+  const handleCopy = async () => {
+    const text = buildFormulaText()
+    if (!text) return
+    await navigator.clipboard.writeText(text)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
 
   return (
     <div>
@@ -119,13 +155,17 @@ function SearchPage() {
             <div className="search-meta">
               <span>처리 시간: {(response.processing_time_ms / 1000).toFixed(1)}초</span>
               <span>KR {response.iterations_kr}회 반복</span>
-              <span>US {response.iterations_us}회 반복</span>
             </div>
           )}
 
           {activeQuery && (
             <div className="query-display">
-              <h3>최종 검색식</h3>
+              <div className="query-display-header">
+                <h3>최종 검색식</h3>
+                <button className="copy-button" onClick={handleCopy}>
+                  {copied ? 'Copied!' : 'Copy'}
+                </button>
+              </div>
               <div className="keyword-groups">
                 {(activeTab === 'KR' ? activeQuery.keyword_groups_kr : activeQuery.keyword_groups_en)?.length > 0 ? (
                   (activeTab === 'KR' ? activeQuery.keyword_groups_kr : activeQuery.keyword_groups_en).map((group, gi) => (
@@ -146,11 +186,21 @@ function SearchPage() {
                     <span key={i} className="keyword-tag">{kw}</span>
                   ))
                 )}
-              </div>
-              <div className="keyword-tags" style={{ marginTop: '0.5rem' }}>
-                {(activeTab === 'KR' ? activeQuery.ipc_codes : activeQuery.cpc_codes).map((code, i) => (
-                  <span key={`cpc-${i}`} className="keyword-tag cpc">{code}</span>
-                ))}
+                {(activeTab === 'KR' ? activeQuery.ipc_codes : activeQuery.cpc_codes).length > 0 && (
+                  <>
+                    <span className="group-operator">AND</span>
+                    <span className="keyword-group">
+                      <span className="group-bracket">(</span>
+                      {(activeTab === 'KR' ? activeQuery.ipc_codes : activeQuery.cpc_codes).map((code, i) => (
+                        <span key={`code-${i}`}>
+                          {i > 0 && <span className="term-operator">OR</span>}
+                          <span className="keyword-tag cpc">{activeTab === 'KR' ? 'IPC' : 'CPC'}={code}</span>
+                        </span>
+                      ))}
+                      <span className="group-bracket">)</span>
+                    </span>
+                  </>
+                )}
               </div>
             </div>
           )}
@@ -160,13 +210,14 @@ function SearchPage() {
               className={`country-tab ${activeTab === 'KR' ? 'active' : ''}`}
               onClick={() => setActiveTab('KR')}
             >
-              한국 특허 ({krCount}건)
+              한국 특허 ({krCount}건{response.total_kr > krCount ? ` / 전체 ${response.total_kr.toLocaleString()}건` : ''})
             </button>
             <button
-              className={`country-tab ${activeTab === 'US' ? 'active' : ''}`}
-              onClick={() => setActiveTab('US')}
+              className="country-tab disabled"
+              disabled
+              title="PatentsView API 사이트 변경으로 일시 중지"
             >
-              미국 특허 ({usCount}건)
+              미국 특허 (일시 중지)
             </button>
           </div>
 

@@ -18,6 +18,8 @@ export interface NormalizedPatent {
   applicant: string | null
   ipc_codes: string[]
   url: string | null
+  relevance_score: number | null
+  relevance_reason: string | null
 }
 
 export interface SearchResponse {
@@ -27,6 +29,7 @@ export interface SearchResponse {
   patents_us: NormalizedPatent[]
   iterations_kr: number
   iterations_us: number
+  total_kr: number
   kipris_remaining: number
   processing_time_ms: number
 }
@@ -48,4 +51,7 @@ export interface SSEEvent {
   recoverable?: boolean
   data?: SearchResponse
   iterations?: number
+  good_ratio?: number
+  noise_ratio?: number
+  satisfied?: boolean
 }

@@ -158,12 +158,36 @@
   background: var(--color-surface);
 }
 
-.query-display h3 {
+.query-display-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.query-display-header h3 {
   font-family: var(--font-display);
   font-size: 0.875rem;
   font-weight: 600;
   color: var(--color-ink);
-  margin: 0 0 8px;
+  margin: 0;
+}
+
+.copy-button {
+  padding: 4px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--color-surface);
+  color: var(--color-muted);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+
+.copy-button:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
 }
 
 .keyword-tags {
@@ -212,6 +236,12 @@
   color: var(--color-accent);
   border-bottom-color: var(--color-accent);
   font-weight: 600;
+}
+
+.country-tab.disabled {
+  color: var(--color-faint);
+  cursor: not-allowed;
+  opacity: 0.5;
 }
 
 /* Empty state */
